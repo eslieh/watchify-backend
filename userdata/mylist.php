@@ -47,41 +47,50 @@ try {
 
         $stmt->close();
 
-    } elseif ($method === "POST" && ($action === "add" || $action === "remove")) {
+    }elseif ($method === "POST" && ($action === "add" || $action === "remove")) {
         // Get the raw POST data
         $inputData = json_decode(file_get_contents('php://input'), true);
-
+    
         if (!isset($inputData['movie_id']) || !is_numeric($inputData['movie_id'])) {
             echo json_encode(["error" => "Valid Movie ID is required"]);
             exit();
         }
-
+    
         $movie_id = intval($inputData['movie_id']);
-
+        $title = $inputData['title'] ?? null; // Optional title
+        $thumb_url = $inputData['thumb_url'] ?? null; // Optional thumb_url
+    
         if ($action === "add") {
+            // Check for required fields
+            if (!$title || !$thumb_url) {
+                echo json_encode(["error" => "Title and thumbnail URL are required"]);
+                exit();
+            }
+    
             // Prepared statement to add the movie
-            $stmt = $conn->prepare("INSERT INTO my_list (user_id, movie_id) VALUES (?, ?)");
-            $stmt->bind_param("si", $user_id, $movie_id);
-
+            $stmt = $conn->prepare("INSERT INTO my_list (user_id, movie_id, title, thumb_url) VALUES (?, ?, ?, ?) 
+                                    ON DUPLICATE KEY UPDATE title = VALUES(title), thumb_url = VALUES(thumb_url)");
+            $stmt->bind_param("siss", $user_id, $movie_id, $title, $thumb_url);
+    
             if ($stmt->execute()) {
                 echo json_encode(["success" => true, "message" => "Movie added to My List"]);
             } else {
                 echo json_encode(["success" => false, "message" => "Failed to add: " . $stmt->error]);
             }
-
+    
             $stmt->close();
-
+    
         } elseif ($action === "remove") {
             // Prepared statement to remove the movie
             $stmt = $conn->prepare("DELETE FROM my_list WHERE user_id = ? AND movie_id = ?");
             $stmt->bind_param("si", $user_id, $movie_id);
-
+    
             if ($stmt->execute()) {
                 echo json_encode(["success" => true, "message" => "Movie removed from My List"]);
             } else {
                 echo json_encode(["success" => false, "message" => "Failed to remove: " . $stmt->error]);
             }
-
+    
             $stmt->close();
         }
     } else {

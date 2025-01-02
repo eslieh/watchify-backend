@@ -29,12 +29,53 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $encPas = $userdata['password'];
         $profile = $userdata['profile'];
         if ($encPas === $password) {
-            echo json_encode([
-                'status' => 'success',
-                'message' => 'Login successful!',
-                'user_id' => $user_id,
-                'profile' => $profile,  // Include profile image
-            ]);
+            $query = mysqli_query($conn, "
+                SELECT 
+                    s.id AS subscription_id, 
+                    s.user_id, 
+                    p.name AS plan_name, 
+                    s.billing_date, 
+                    s.next_billing_date, 
+                    s.pricing, 
+                    p.duration 
+                FROM subscription s
+                INNER JOIN plans p ON s.plan_id = p.id
+                WHERE s.user_id = '$user_id'
+            ");
+            if (mysqli_num_rows($query) < 1) {
+                $freePlanQuery = mysqli_query($conn, "SELECT id, price FROM plans WHERE name = 'Mini' LIMIT 1");
+
+                if ($freePlanQuery && mysqli_num_rows($freePlanQuery) > 0) {
+                    $freePlan = mysqli_fetch_assoc($freePlanQuery);
+                    $planId = $freePlan['id'];
+                    $price = 'free'; // Set price to free for the new subscription
+                    $billingDate = date('Y-m-d'); // Set today's date as the billing date
+                    $nextBillingDate = date('Y-m-d', strtotime('+1 week')); // Set the next billing date a week later
+
+                    // Insert the subscription
+                    $insertSubscriptionQuery = "
+                        INSERT INTO subscription (user_id, plan_id, billing_date, next_billing_date, pricing)
+                        VALUES ('$user_id', '$planId', '$billingDate', '$nextBillingDate', '$price')
+                    ";
+
+                    if (mysqli_query($conn, $insertSubscriptionQuery)) {
+                        echo json_encode([
+                            'status' => 'success',
+                            'message' => 'Login successful!',
+                            'user_id' => $user_id,
+                            'profile' => $profile,  // Include profile image
+                        ]);
+                    }
+                }
+            } else {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Login successful!',
+                    'user_id' => $user_id,
+                    'profile' => $profile,  // Include profile image
+                ]);
+            }
+
         } else {
             echo json_encode([
                 'status' => 'error',
@@ -44,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         echo json_encode([
             'status' => 'error',
-            'message' => `$email deos not exist`
+            'message' => "email doesn't exist, try again or signing up"
         ]);
     }
 }

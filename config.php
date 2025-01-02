@@ -1,8 +1,8 @@
 <?php
   // $hostname = "localhost:3306";
-  // $username = "mealscok_meals";
-  // $password = "-cCtu@NY39w5L8";
-  // $dbname = "mealscok_meals";
+  // $username = "lqzluuep_watchify";
+  // $password = "2298Vic@2004";
+  // $dbname = "lqzluuep_watchify";
   $hostname = "localhost";
   $username = "root";
   $password = "";
@@ -16,5 +16,4 @@
   ini_set('display_errors', 1);
   ini_set('display_startup_errors', 1);
   error_reporting(E_ALL);
-    
 ?>

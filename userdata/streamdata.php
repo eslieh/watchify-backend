@@ -8,9 +8,6 @@ header("Content-Type: application/json");
 // Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     // Allow the preflight request to proceed
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization");
     http_response_code(200);
     exit;
 }
@@ -32,13 +29,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $length = $input['length'] ?? 0;
     $movie_thumb = $input['movie_thumb'];
 
-    // Prepare and execute the SQL statement
-    $stmt = $pdo->prepare("INSERT INTO watch_data (user_id, movie_id, length, watch_date, movie_thumb) VALUES (?, ?, ?, NOW(), ?)");
-    if ($stmt->execute([$user_id, $movie_id, $length, $movie_thumb])) {
-        echo json_encode(["success" => true]);
-    } else {
+    try {
+        // Prepare the SQL query with an UPSERT logic
+        $stmt = $pdo->prepare("
+            INSERT INTO watch_data (user_id, movie_id, length, watch_date, movie_thumb)
+            VALUES (?, ?, ?, NOW(), ?)
+            ON DUPLICATE KEY UPDATE
+            watch_date = NOW(), 
+            length = VALUES(length), 
+            movie_thumb = VALUES(movie_thumb)
+        ");
+
+        // Execute the query
+        if ($stmt->execute([$user_id, $movie_id, $length, $movie_thumb])) {
+            echo json_encode(["success" => true]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["error" => "Failed to save or update data"]);
+        }
+    } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["error" => "Failed to save data"]);
+        echo json_encode(["error" => $e->getMessage()]);
     }
 } else {
     http_response_code(405);

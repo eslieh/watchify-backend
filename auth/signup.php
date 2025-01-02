@@ -63,12 +63,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 // Check if the statement executed successfully
                 if ($stmt->execute()) {
-                    $response = [
-                        "status" => "success",
-                        "message" => "Registration successful! You can now log in.",
-                        "user_id" => $user_id,
-                        "profile" => $profile_image
-                    ];
+                    $freePlanQuery = mysqli_query($conn, "SELECT id, price FROM plans WHERE name = 'Mini' LIMIT 1");
+
+                    if ($freePlanQuery && mysqli_num_rows($freePlanQuery) > 0) {
+                        $freePlan = mysqli_fetch_assoc($freePlanQuery);
+                        $planId = $freePlan['id'];
+                        $price = 'free'; // Set price to free for the new subscription
+                        $billingDate = date('Y-m-d'); // Set today's date as the billing date
+                        $nextBillingDate = date('Y-m-d', strtotime('+1 week')); // Set the next billing date a week later
+
+                        // Insert the subscription
+                        $insertSubscriptionQuery = "
+                            INSERT INTO subscription (user_id, plan_id, billing_date, next_billing_date, pricing)
+                            VALUES ('$user_id', '$planId', '$billingDate', '$nextBillingDate', '$price')
+                        ";
+
+                        if (mysqli_query($conn, $insertSubscriptionQuery)) {
+                            $response = [
+                                "status" => "success",
+                                "message" => "Registration successful! You can now log in.",
+                                "user_id" => $user_id,
+                                "profile" => $profile_image
+                            ];
+                        }
+                    }
+                    
                 } else {
                     $response = [
                         "status" => "error",
