@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the input data
     $input = json_decode(file_get_contents('php://input'), true);
 
-    // Validate required parameters
+    // Validate required parameters 
     if (!isset($input['user_id']) || !isset($input['plan_id'])) {
         http_response_code(400);
         echo json_encode(["error" => "Missing user_id or plan_id"]);
